@@ -30,10 +30,12 @@ async function run() {
     const collection = db.collection("users");
     const donations = db.collection("donations");
     const testimonial = db.collection("testimonial");
+    const volunteer = db.collection("volunteer");
+    const community = db.collection("community");
 
     // User Registration
     app.post("/api/v1/register", async (req, res) => {
-      const { name, email, password } = req.body;
+      const { name, email, password, image, location } = req.body;
 
       // Check if email already exists
       const existingUser = await collection.findOne({ email });
@@ -48,7 +50,13 @@ async function run() {
       const hashedPassword = await bcrypt.hash(password, 10);
 
       // Insert user into the database
-      await collection.insertOne({ name, email, password: hashedPassword });
+      await collection.insertOne({
+        name,
+        email,
+        image,
+        location,
+        password: hashedPassword,
+      });
 
       // Generate JWT token
       const token = generateToken(email);
@@ -60,6 +68,8 @@ async function run() {
         user: {
           name,
           email,
+          image,
+          location,
         },
       });
     });
@@ -284,6 +294,97 @@ async function run() {
           message: "Something went wrong.",
         });
       }
+    });
+
+    // create volunteer
+    app.post("/api/v1/volunteer", async (req, res) => {
+      const result = await volunteer.insertOne(req.body);
+
+      if (result.acknowledged) {
+        res.json({
+          success: true,
+          message: "Application applied successfully.",
+        });
+      } else {
+        res.json({
+          success: false,
+          message: "Something went wrong.",
+        });
+      }
+    });
+
+    // get all volunteer post
+    app.get("/api/v1/volunteer", async (req, res) => {
+      const result = await volunteer.find().sort({ _id: 1 }).toArray();
+
+      res.json({
+        success: true,
+        message: "Volunteers fetched successfully.",
+        data: result,
+      });
+    });
+
+    // get a volunteer post
+    app.get("/api/v1/volunteer/:id", async (req, res) => {
+      const { id } = req.params;
+      const result = await volunteer.findOne({ _id: new ObjectId(id) });
+
+      res.json({
+        success: true,
+        message: "Volunteer fetched successfully.",
+        data: result,
+      });
+    });
+
+    // get all community posts
+    app.get("/api/v1/community", async (req, res) => {
+      const result = await community.find({}).sort({ _id: -1 }).toArray();
+
+      res.json({
+        success: true,
+        message: "Community posts fetched successfully.",
+        data: result,
+      });
+    });
+
+    // add community post comment
+    app.put("/api/v1/community/:id", async (req, res) => {
+      const { id } = req.params;
+      const query = { _id: new ObjectId(id) };
+      const option = { upsert: true };
+
+      const updatedComment = req.body;
+
+      const post = await community.findOne(query);
+
+      if (!post) {
+        return res.send({
+          success: false,
+          message: "This post is invalid.",
+        });
+      }
+
+      let comments = []; // Initialize comments as an empty array
+
+      if (post.comments && Array.isArray(post.comments)) {
+        comments = [...post.comments, updatedComment];
+      } else {
+        comments = [updatedComment];
+      }
+
+      const updatedDoc = {
+        $set: {
+          comments: comments,
+        },
+      };
+
+      const result = await community.updateOne(query, updatedDoc, option);
+
+      res.json({
+        success: true,
+        message: "Community post updated successfully.",
+        data: post, // Return the updated document
+      });
     });
 
     // Start the server
