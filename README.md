@@ -1,6 +1,6 @@
 # HelpLink (A Charity App)
 
-## Live :- https://helplink-a2f5c.web.app/
+## Live :- https://shiny-palmier-504022.netlify.app/
 
 ## Server :- https://l2-b2-frontend-path-assignment-6-server-starter-pack-hazel.vercel.app/
 
